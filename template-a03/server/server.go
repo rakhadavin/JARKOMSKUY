@@ -81,7 +81,7 @@ func HandleConnection(connection net.Conn) {
 	defer connection.Close()
 	receiveLength, err := connection.Read(receiveBuffer)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("[CAN'T READ BUFFER] : ", err)
 	}
 	message := string(receiveBuffer[:receiveLength])
 
@@ -114,7 +114,6 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	}
 	fmt.Printf(greeter.Greeter)
 
-	// Menentukan Content-Type dan Content-Length berdasarkan Accept
 	if strings.Contains(req.Accept, "application/json") {
 		contentType = "application/json"
 		var dataJson, err = json.Marshal(greeter)
