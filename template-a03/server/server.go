@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"strings"
 )
 
@@ -102,17 +104,35 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	var contentType string
 	var contentLength int
 	var data string
+	var paramValue string
+	var validURI string
+	var greeterName string
 
 	var student = Student{
 		Nama: STUDENT_NAME,
 		Npm:  STUDENT_NPM,
 	}
+	greeterName = "Pin"
+	validURI = "HTTPS://greet"
+	validURI = req.Uri
+	fmt.Println("ini urinya awalnya : ", validURI)
 
+	// jika URI mengandung param -- set nama greeter dengan nama pada param
+	validURI = req.Uri
+	parsedURI, err := url.Parse(validURI)
+	if err != nil {
+		log.Fatalln("Error : Invalid URL")
+	}
+	paramValue = parsedURI.Query().Get("name")
+	if paramValue != "" {
+
+		fmt.Println("MASOK")
+		greeterName = paramValue
+	}
 	greeter := GreetResponse{
 		Student: student,
-		Greeter: student.Nama,
+		Greeter: greeterName,
 	}
-	fmt.Printf(greeter.Greeter)
 
 	if strings.Contains(req.Accept, "application/json") {
 		contentType = "application/json"
@@ -121,16 +141,25 @@ func HandleRequest(req HttpRequest) HttpResponse {
 			log.Fatalln("Error parsing to JSON")
 		}
 		data = string(dataJson)
-		contentLength = len(data) // Contoh nilai
+		contentLength = len(data)
+	} else if strings.Contains(req.Accept, "application/xml") {
+		contentType = "application/json"
+		var dataJson, err = xml.Marshal(greeter)
+		if err != nil {
+			log.Fatalln("Error parsing to JSON")
+		}
+		data = string(dataJson)
+		contentLength = len(data)
 	} else if strings.Contains(req.Accept, "text/html") {
 		contentType = "text/html"
 		data = fmt.Sprintf("<html><body><h1>Halo, dunia! aku %s</h1></body></html>", STUDENT_NAME)
 		contentLength = len(data)
 	} else {
 		contentType = "text"
-		// data, _ := json.Marshal(greeter)
+		data, _ := json.Marshal(greeter)
 		contentLength = len(data)
 	}
+	fmt.Println("GRETER NAMA : ", greeter.Student.Nama)
 
 	response := HttpResponse{
 		Version:       req.Version,
@@ -140,7 +169,6 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		Data:          data,
 	}
 	fmt.Printf("Responding to clients: %+v\n", response)
-	// Kembali ke HttpResponse struct
 	return response
 
 }
@@ -152,12 +180,12 @@ func RequestDecoder(bytestream []byte) HttpRequest {
 	var host, accept string
 	host = strings.TrimSpace((strings.TrimPrefix(msgSplit[1], "Host:")))
 	accept = strings.TrimSpace(msgSplit[2])
-
-	fmt.Println("ACCEPT:: ", accept)
+	fmt.Println("lengkap : ", msgSplit)
+	fmt.Println("INI : ", strings.Split(msgSplit[0], " ")[0])
 	// Membuat struct HttpRequest
 	return HttpRequest{
-		Method:  strings.Split(string(bytestream), "\r\n")[0],
-		Uri:     strings.Split(string(bytestream), "\r\n")[1],
+		Method:  strings.Split(msgSplit[0], " ")[0],
+		Uri:     strings.Split(msgSplit[0], " ")[1],
 		Version: "HTTP/1.1",
 		Host:    host,
 		Accept:  accept,
@@ -166,7 +194,6 @@ func RequestDecoder(bytestream []byte) HttpRequest {
 
 func ResponseEncoder(res HttpResponse) []byte {
 	// Put the encoding program for HTTP Response Struct here
-	fmt.Println("TOLOL")
 	fmt.Println(res.Data)
 	responseString := fmt.Sprintf("%s %d\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s",
 		res.Version, 200, res.ContentType, res.ContentLength, res.Data)

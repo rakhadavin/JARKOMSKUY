@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -43,6 +44,7 @@ type HttpResponse struct {
 
 func main() {
 
+	var parsedJson GreetResponse
 	remoteTcpAddress, err := net.ResolveTCPAddr(SERVER_TYPE, net.JoinHostPort("127.0.0.1", "3000"))
 	if err != nil {
 		log.Fatalln(err)
@@ -64,16 +66,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Print(messageUrl)
 
 	fmt.Printf("[%s] Input the Type:  ", SERVER_TYPE)
 	messageMime, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Print(strings.TrimSpace(messageMime))
-
-	// msg := strings.TrimSpace(messageUrl) + strings.TrimSpace(messageMime)
 
 	req := HttpRequest{
 		Method:  "GET",
@@ -82,9 +80,13 @@ func main() {
 		Host:    "127.0.0.1",
 		Accept:  strings.TrimSpace(messageMime),
 	}
-	fmt.Println(req)
 	response := Fetch(req, socket)
 	fmt.Printf("Status Code: %s\nBody: %s\n", response.StatusCode, response.Data)
+	if (strings.Contains(response.ContentType, "application/json")) || (strings.Contains(response.ContentType, "application/xml")) {
+		var tews = json.Unmarshal([]byte(response.Data), &parsedJson)
+
+		fmt.Println("Parsed: ", tews)
+	}
 
 }
 
@@ -112,28 +114,23 @@ func Fetch(req HttpRequest, connection net.Conn) HttpResponse {
 }
 
 func ResponseDecoder(bytestream []byte) HttpResponse {
-	response := string(bytestream)
-	fmt.Println(response)
-	// Split response menjadi header dan body
-	parts := strings.Split(response, "\r\n\r\n")
-	headerPart := parts[0]
 	var body string
-	if len(parts) > 1 {
-		body = parts[1]
-	}
-	fmt.Println(parts)
 
-	// Split headers berdasarkan baris
+	response := string(bytestream)
+	fragments := strings.Split(response, "\r\n\r\n")
+	headerPart := fragments[0]
+	if len(fragments) > 1 {
+		body = fragments[1]
+	}
+	var contentType = strings.Split(fragments[0], " ")[2]
+
 	headerLines := strings.Split(headerPart, "\r\n")
 	statusLine := headerLines[0]
 	headers := map[string]string{}
 
-	// Parsing status line (contoh: "HTTP/1.1 200 OK")
-	statusParts := strings.Split(statusLine, " ")
-	statusCode, _ := strconv.Atoi(statusParts[1])
-	// status := strings.Join(statusParts[2:], " ")
+	statusFr := strings.Split(statusLine, " ")
+	statusCode, _ := strconv.Atoi(statusFr[1])
 
-	// Parsing headers
 	for _, line := range headerLines[1:] {
 		headerParts := strings.SplitN(line, ": ", 2)
 		if len(headerParts) == 2 {
@@ -141,13 +138,11 @@ func ResponseDecoder(bytestream []byte) HttpResponse {
 		}
 	}
 
-	fmt.Println("BODYYY : ", body)
-	// Mengembalikan struct HttpResponse
 	return HttpResponse{
 
 		Version:       "HTTP/1.1",
 		StatusCode:    strconv.Itoa(statusCode),
-		ContentType:   "application/json",
+		ContentType:   contentType,
 		ContentLength: int(len(bytestream)),
 		Data:          body,
 	}
