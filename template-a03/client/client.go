@@ -67,25 +67,32 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	// host := strings.Split(strings.Split(messageUrl, "/")[1], " ")[0]
+	//strings.Split(messageUrl, "/") =  [http:  127.0.0.1:3000 greet]
+	ipRaw := strings.Split(messageUrl, "/")[2]
+	host := ipRaw[:strings.Index(ipRaw, ":")]
+	// strings.Split(strings.Split(messageUrl, "/")[2], ":")[0] (cara kedua ngambil host doang)
+
 	fmt.Printf("[%s] Input the Type:  ", SERVER_TYPE)
 	messageMime, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		log.Fatalln(err)
 	}
+	fmt.Println(strings.Split(messageUrl, " "))
 
 	req := HttpRequest{
 		Method:  "GET",
 		Uri:     strings.TrimSpace(messageUrl),
 		Version: "HTTP/1.1",
-		Host:    "127.0.0.1",
+		Host:    host,
 		Accept:  strings.TrimSpace(messageMime),
 	}
 	response := Fetch(req, socket)
 	fmt.Printf("Status Code: %s\nBody: %s\n", response.StatusCode, response.Data)
 	if (strings.Contains(response.ContentType, "application/json")) || (strings.Contains(response.ContentType, "application/xml")) {
-		var tews = json.Unmarshal([]byte(response.Data), &parsedJson)
+		var _ = json.Unmarshal([]byte(response.Data), &parsedJson)
 
-		fmt.Println("Parsed: ", tews)
+		fmt.Println("Parsed: ", parsedJson)
 	}
 
 }

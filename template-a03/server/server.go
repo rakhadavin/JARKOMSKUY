@@ -107,26 +107,34 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	var paramValue string
 	var validURI string
 	var greeterName string
+	var npmParam string
 
 	var student = Student{
 		Nama: STUDENT_NAME,
 		Npm:  STUDENT_NPM,
 	}
 	greeterName = "Pin"
-	validURI = "HTTPS://greet"
-	validURI = req.Uri
-	fmt.Println("ini urinya awalnya : ", validURI)
+	validURI = "http://127.0.0.1:3000/greet/2206082650" //set default
+	// jika NPM pada URI tidak sama dengan NPM saya
 
-	// jika URI mengandung param -- set nama greeter dengan nama pada param
+	if !strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://") {
+		log.Fatalln("Error: Invalid URL format")
+	}
 	validURI = req.Uri
 	parsedURI, err := url.Parse(validURI)
-	if err != nil {
+	npmParam = strings.Split(req.Uri, "/")[4]
+
+	if !strings.HasPrefix(validURI, "http://") || !strings.HasPrefix(validURI, "https://") || err != nil || strings.EqualFold(npmParam, STUDENT_NPM) {
 		log.Fatalln("Error : Invalid URL")
+		contentType = "application/json"
+
+		data = ""
+		contentLength = len(data)
 	}
+	//jika uri nya ada parameter --> set GreeterNama jadi param
 	paramValue = parsedURI.Query().Get("name")
 	if paramValue != "" {
 
-		fmt.Println("MASOK")
 		greeterName = paramValue
 	}
 	greeter := GreetResponse{
@@ -134,15 +142,7 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		Greeter: greeterName,
 	}
 
-	if strings.Contains(req.Accept, "application/json") {
-		contentType = "application/json"
-		var dataJson, err = json.Marshal(greeter)
-		if err != nil {
-			log.Fatalln("Error parsing to JSON")
-		}
-		data = string(dataJson)
-		contentLength = len(data)
-	} else if strings.Contains(req.Accept, "application/xml") {
+	if strings.Contains(req.Accept, "application/xml") {
 		contentType = "application/json"
 		var dataJson, err = xml.Marshal(greeter)
 		if err != nil {
@@ -150,16 +150,19 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		}
 		data = string(dataJson)
 		contentLength = len(data)
-	} else if strings.Contains(req.Accept, "text/html") {
+	} else if strings.Contains(req.Accept, "text/html") || string((req.Uri)[len(req.Uri)-1]) == "/" {
 		contentType = "text/html"
 		data = fmt.Sprintf("<html><body><h1>Halo, dunia! aku %s</h1></body></html>", STUDENT_NAME)
 		contentLength = len(data)
 	} else {
-		contentType = "text"
-		data, _ := json.Marshal(greeter)
+		contentType = "application/json"
+		var dataJson, err = json.Marshal(greeter)
+		if err != nil {
+			log.Fatalln("Error parsing to JSON")
+		}
+		data = string(dataJson)
 		contentLength = len(data)
 	}
-	fmt.Println("GRETER NAMA : ", greeter.Student.Nama)
 
 	response := HttpResponse{
 		Version:       req.Version,
@@ -180,8 +183,6 @@ func RequestDecoder(bytestream []byte) HttpRequest {
 	var host, accept string
 	host = strings.TrimSpace((strings.TrimPrefix(msgSplit[1], "Host:")))
 	accept = strings.TrimSpace(msgSplit[2])
-	fmt.Println("lengkap : ", msgSplit)
-	fmt.Println("INI : ", strings.Split(msgSplit[0], " ")[0])
 	// Membuat struct HttpRequest
 	return HttpRequest{
 		Method:  strings.Split(msgSplit[0], " ")[0],
@@ -195,6 +196,13 @@ func RequestDecoder(bytestream []byte) HttpRequest {
 func ResponseEncoder(res HttpResponse) []byte {
 	// Put the encoding program for HTTP Response Struct here
 	fmt.Println(res.Data)
+	if res.Data == "" {
+		responseString := fmt.Sprintf("%s %d\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s",
+			res.Version, 404, res.ContentType, res.ContentLength, res.Data)
+
+		return []byte(responseString)
+
+	}
 	responseString := fmt.Sprintf("%s %d\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s",
 		res.Version, 200, res.ContentType, res.ContentLength, res.Data)
 	return []byte(responseString)
