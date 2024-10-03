@@ -45,6 +45,7 @@ type HttpResponse struct {
 func main() {
 
 	var parsedJson GreetResponse
+	var messageMime string
 	remoteTcpAddress, err := net.ResolveTCPAddr(SERVER_TYPE, net.JoinHostPort("127.0.0.1", "3000"))
 	if err != nil {
 		log.Fatalln(err)
@@ -66,27 +67,37 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	// host := strings.Split(strings.Split(messageUrl, "/")[1], " ")[0]
-	//strings.Split(messageUrl, "/") =  [http:  127.0.0.1:3000 greet]
-	ipRaw := strings.Split(messageUrl, "/")[2]
-	host := ipRaw[:strings.Index(ipRaw, ":")]
-	// strings.Split(strings.Split(messageUrl, "/")[2], ":")[0] (cara kedua ngambil host doang)
+	var host string
+	var req HttpRequest
 
 	fmt.Printf("[%s] Input the Type:  ", SERVER_TYPE)
-	messageMime, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	messageMime, err = bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Println(strings.Split(messageUrl, " "))
+	if len(strings.Split(messageUrl, "/")) < 4 {
+		req = HttpRequest{
+			Method:  "GET",
+			Uri:     strings.TrimSpace(messageUrl),
+			Version: "HTTP/1.1",
+			Host:    "",
+			Accept:  strings.TrimSpace(messageMime),
+		}
+	} else {
 
-	req := HttpRequest{
-		Method:  "GET",
-		Uri:     strings.TrimSpace(messageUrl),
-		Version: "HTTP/1.1",
-		Host:    host,
-		Accept:  strings.TrimSpace(messageMime),
+		fmt.Println(strings.Split(messageUrl, " "))
+		ipRaw := strings.Split(messageUrl, "/")[2]
+		host = ipRaw[:strings.Index(ipRaw, ":")]
+		req = HttpRequest{
+			Method:  "GET",
+			Uri:     strings.TrimSpace(messageUrl),
+			Version: "HTTP/1.1",
+			Host:    host,
+			Accept:  strings.TrimSpace(messageMime),
+		}
+
 	}
+
 	response := Fetch(req, socket)
 	fmt.Printf("Status Code: %s\nBody: %s\n", response.StatusCode, response.Data)
 	if (strings.Contains(response.ContentType, "application/json")) || (strings.Contains(response.ContentType, "application/xml")) {

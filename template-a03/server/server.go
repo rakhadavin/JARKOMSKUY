@@ -122,9 +122,28 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	}
 	validURI = req.Uri
 	parsedURI, err := url.Parse(validURI)
-	npmParam = strings.Split(req.Uri, "/")[4]
+	//jika url tidak valid
+	if len(strings.Split(validURI, "/")) < 4 {
+		fmt.Println("ERROR BANG")
+		data = ""
+		return HttpResponse{
+			Version:       req.Version,
+			StatusCode:    "404",
+			ContentType:   contentType,
+			ContentLength: contentLength,
+			Data:          data,
+		}
+	} else {
+		splittedURI := strings.Split(validURI, "/")
+		idWithParams := splittedURI[len(splittedURI)-1]
+		npmParam = strings.Split(idWithParams, "?")[0]
 
-	if !strings.HasPrefix(validURI, "http://") || !strings.HasPrefix(validURI, "https://") || err != nil || strings.EqualFold(npmParam, STUDENT_NPM) {
+		// Output hanya angkanya
+
+	}
+
+	if (!strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://")) || err != nil || !strings.EqualFold(npmParam, STUDENT_NPM) {
+		fmt.Println(strings.EqualFold(npmParam, STUDENT_NPM))
 		log.Fatalln("Error : Invalid URL")
 		contentType = "application/json"
 
@@ -141,6 +160,8 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		Student: student,
 		Greeter: greeterName,
 	}
+	endpoints := strings.Split(req.Uri, "/")
+	fmt.Print(endpoints)
 
 	if strings.Contains(req.Accept, "application/xml") {
 		contentType = "application/json"
@@ -154,7 +175,7 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		contentType = "text/html"
 		data = fmt.Sprintf("<html><body><h1>Halo, dunia! aku %s</h1></body></html>", STUDENT_NAME)
 		contentLength = len(data)
-	} else {
+	} else if strings.Contains(req.Accept, "application/json") || strings.EqualFold(req.Uri, "http") {
 		contentType = "application/json"
 		var dataJson, err = json.Marshal(greeter)
 		if err != nil {
