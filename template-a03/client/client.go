@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net"
@@ -45,6 +46,7 @@ type HttpResponse struct {
 func main() {
 
 	var parsedJson GreetResponse
+	var parsedXml GreetResponse
 	var messageMime string
 	remoteTcpAddress, err := net.ResolveTCPAddr(SERVER_TYPE, net.JoinHostPort("127.0.0.1", "3000"))
 	if err != nil {
@@ -55,12 +57,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("TCP Client Socket Program Example in Go\n")
-	fmt.Printf("[%s] Dialling from %s to %s\n", SERVER_TYPE, socket.LocalAddr(), socket.RemoteAddr())
-
 	defer socket.Close()
-
-	fmt.Printf("[%s] Creating receive buffer of size %d\n", SERVER_TYPE, BUFFER_SIZE)
 
 	fmt.Printf("[%s] Input the url:  ", SERVER_TYPE)
 	messageUrl, err := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -75,6 +72,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	if !strings.EqualFold(messageMime, "application/json") && !strings.EqualFold(messageMime, "application/json") && !strings.EqualFold(messageMime, "text/html") {
+		messageMime = "application/json"
+	}
 	if len(strings.Split(messageUrl, "/")) < 4 {
 		req = HttpRequest{
 			Method:  "GET",
@@ -85,7 +85,6 @@ func main() {
 		}
 	} else {
 
-		fmt.Println(strings.Split(messageUrl, " "))
 		ipRaw := strings.Split(messageUrl, "/")[2]
 		host = ipRaw[:strings.Index(ipRaw, ":")]
 		req = HttpRequest{
@@ -100,10 +99,14 @@ func main() {
 
 	response := Fetch(req, socket)
 	fmt.Printf("Status Code: %s\nBody: %s\n", response.StatusCode, response.Data)
-	if (strings.Contains(response.ContentType, "application/json")) || (strings.Contains(response.ContentType, "application/xml")) {
+	if strings.Contains(response.ContentType, "application/json") {
 		var _ = json.Unmarshal([]byte(response.Data), &parsedJson)
 
 		fmt.Println("Parsed: ", parsedJson)
+	} else if strings.Contains(response.ContentType, "application/xml") {
+		var _ = xml.Unmarshal([]byte(response.Data), &parsedXml)
+
+		fmt.Println("Parsed: ", parsedXml)
 	}
 
 }

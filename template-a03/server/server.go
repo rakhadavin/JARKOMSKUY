@@ -117,14 +117,11 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	validURI = "http://127.0.0.1:3000/greet/2206082650" //set default
 	// jika NPM pada URI tidak sama dengan NPM saya
 
-	if !strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://") {
-		log.Fatalln("Error: Invalid URL format")
-	}
 	validURI = req.Uri
 	parsedURI, err := url.Parse(validURI)
+	fmt.Println(strings.Split(validURI, "/"))
 	//jika url tidak valid
 	if len(strings.Split(validURI, "/")) < 4 {
-		fmt.Println("ERROR BANG")
 		data = ""
 		return HttpResponse{
 			Version:       req.Version,
@@ -135,20 +132,29 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		}
 	} else {
 		splittedURI := strings.Split(validURI, "/")
-		idWithParams := splittedURI[len(splittedURI)-1]
-		npmParam = strings.Split(idWithParams, "?")[0]
+		npmWithParams := splittedURI[len(splittedURI)-1]
+		npmParam = strings.Split(npmWithParams, "?")[0] //ambil param
 
 		// Output hanya angkanya
 
 	}
 
 	if (!strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://")) || err != nil || !strings.EqualFold(npmParam, STUDENT_NPM) {
+
+		// && strings.EqualFold(parsedURI, "http://127.0.0.1:3000/"
 		fmt.Println(strings.EqualFold(npmParam, STUDENT_NPM))
-		log.Fatalln("Error : Invalid URL")
-		contentType = "application/json"
+		contentType = ""
 
 		data = ""
 		contentLength = len(data)
+
+		return HttpResponse{
+			Version:       req.Version,
+			StatusCode:    "200",
+			ContentType:   contentType,
+			ContentLength: contentLength,
+			Data:          data,
+		}
 	}
 	//jika uri nya ada parameter --> set GreeterNama jadi param
 	paramValue = parsedURI.Query().Get("name")
@@ -164,7 +170,7 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	fmt.Print(endpoints)
 
 	if strings.Contains(req.Accept, "application/xml") {
-		contentType = "application/json"
+		contentType = "application/xml"
 		var dataJson, err = xml.Marshal(greeter)
 		if err != nil {
 			log.Fatalln("Error parsing to JSON")
