@@ -121,7 +121,7 @@ func HandleRequest(req HttpRequest) HttpResponse {
 	parsedURI, err := url.Parse(validURI)
 	fmt.Println(strings.Split(validURI, "/"))
 	//jika url tidak valid
-	if len(strings.Split(validURI, "/")) < 4 {
+	if len(strings.Split(validURI, "/")) < 4 && !strings.EqualFold(validURI, "http://127.0.0.1:3000/") {
 		data = ""
 		return HttpResponse{
 			Version:       req.Version,
@@ -139,7 +139,7 @@ func HandleRequest(req HttpRequest) HttpResponse {
 
 	}
 
-	if (!strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://")) || err != nil || !strings.EqualFold(npmParam, STUDENT_NPM) {
+	if (!strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://")) || err != nil || (!strings.EqualFold(npmParam, STUDENT_NPM) && npmParam != "") {
 
 		// && strings.EqualFold(parsedURI, "http://127.0.0.1:3000/"
 		fmt.Println(strings.EqualFold(npmParam, STUDENT_NPM))
