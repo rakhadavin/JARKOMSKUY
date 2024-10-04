@@ -48,16 +48,6 @@ func main() {
 	var parsedJson GreetResponse
 	var parsedXml GreetResponse
 	var messageMime string
-	remoteTcpAddress, err := net.ResolveTCPAddr(SERVER_TYPE, net.JoinHostPort("127.0.0.1", "3000"))
-	if err != nil {
-		log.Fatalln(err)
-	}
-	socket, err := net.DialTCP(SERVER_TYPE, nil, remoteTcpAddress)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	defer socket.Close()
 
 	fmt.Printf("[%s] Input the url:  ", SERVER_TYPE)
 	messageUrl, err := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -67,12 +57,12 @@ func main() {
 	var host string
 	var req HttpRequest
 
-	fmt.Printf("[%s] Input the Type:  ", SERVER_TYPE)
+	fmt.Printf("[%s] Input the data type:  ", SERVER_TYPE)
 	messageMime, err = bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if !strings.EqualFold(messageMime, "application/json") && !strings.EqualFold(messageMime, "application/json") && !strings.EqualFold(messageMime, "text/html") {
+	if (!strings.EqualFold(messageMime, "application/json") && !strings.EqualFold(messageMime, "application/json")) && !strings.EqualFold(messageMime, "text/html") {
 		messageMime = "application/json"
 	}
 	if len(strings.Split(messageUrl, "/")) < 4 {
@@ -96,7 +86,16 @@ func main() {
 		}
 
 	}
+	remoteTcpAddress, err := net.ResolveTCPAddr(SERVER_TYPE, net.JoinHostPort(host, "2650"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	socket, err := net.DialTCP(SERVER_TYPE, nil, remoteTcpAddress)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
+	defer socket.Close()
 	response := Fetch(req, socket)
 	fmt.Printf("Status Code: %s\nBody: %s\n", response.StatusCode, response.Data)
 	if strings.Contains(response.ContentType, "application/json") {

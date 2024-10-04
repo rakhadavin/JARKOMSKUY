@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	SERVER_HOST  = "127.0.0.1"
-	SERVER_PORT  = "3000"
+	SERVER_HOST  = "0.0.0.0"
+	SERVER_PORT  = "2650"
 	SERVER_TYPE  = "tcp"
 	BUFFER_SIZE  = 2048
 	STUDENT_NAME = "Pin"
@@ -114,14 +114,23 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		Npm:  STUDENT_NPM,
 	}
 	greeterName = "Pin"
-	validURI = "http://127.0.0.1:3000/greet/2206082650" //set default
+	validURI = "http://34.105.62.35:2650/greet/2206082650" //set default
 	// jika NPM pada URI tidak sama dengan NPM saya
 
 	validURI = req.Uri
 	parsedURI, err := url.Parse(validURI)
-	fmt.Println(strings.Split(validURI, "/"))
-	//jika url tidak valid
-	if len(strings.Split(validURI, "/")) < 4 && !strings.EqualFold(validURI, "http://127.0.0.1:3000/") {
+	//jika url tidak valid (ip salah)
+	if len(strings.Split(validURI, "/")) < 4 && !strings.EqualFold(validURI, "http://34.105.62.35:2650/greet") {
+		data = ""
+		return HttpResponse{
+			Version:       req.Version,
+			StatusCode:    "404",
+			ContentType:   contentType,
+			ContentLength: contentLength,
+			Data:          data,
+		}
+	} else if !strings.Contains(validURI, "http://34.105.62.35:2650/") {
+
 		data = ""
 		return HttpResponse{
 			Version:       req.Version,
@@ -135,14 +144,10 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		npmWithParams := splittedURI[len(splittedURI)-1]
 		npmParam = strings.Split(npmWithParams, "?")[0] //ambil param
 
-		// Output hanya angkanya
-
 	}
-
+	//validasi uri, Handling :  NPM beda dengan NPM asli
 	if (!strings.HasPrefix(validURI, "http://") && !strings.HasPrefix(validURI, "https://")) || err != nil || (!strings.EqualFold(npmParam, STUDENT_NPM) && npmParam != "") {
 
-		// && strings.EqualFold(parsedURI, "http://127.0.0.1:3000/"
-		fmt.Println(strings.EqualFold(npmParam, STUDENT_NPM))
 		contentType = ""
 
 		data = ""
@@ -166,14 +171,12 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		Student: student,
 		Greeter: greeterName,
 	}
-	endpoints := strings.Split(req.Uri, "/")
-	fmt.Print(endpoints)
 
 	if strings.Contains(req.Accept, "application/xml") {
 		contentType = "application/xml"
 		var dataJson, err = xml.Marshal(greeter)
 		if err != nil {
-			log.Fatalln("Error parsing to JSON")
+			log.Fatalln("Error parsing to XML")
 		}
 		data = string(dataJson)
 		contentLength = len(data)
@@ -198,7 +201,6 @@ func HandleRequest(req HttpRequest) HttpResponse {
 		ContentLength: contentLength,
 		Data:          data,
 	}
-	fmt.Printf("Responding to clients: %+v\n", response)
 	return response
 
 }
@@ -222,7 +224,6 @@ func RequestDecoder(bytestream []byte) HttpRequest {
 
 func ResponseEncoder(res HttpResponse) []byte {
 	// Put the encoding program for HTTP Response Struct here
-	fmt.Println(res.Data)
 	if res.Data == "" {
 		responseString := fmt.Sprintf("%s %d\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s",
 			res.Version, 404, res.ContentType, res.ContentLength, res.Data)
